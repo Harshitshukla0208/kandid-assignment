@@ -5,20 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     Users,
     Target,
     TrendingUp,
     Mail,
-    CheckCircle,
-    Clock,
-    MoreHorizontal,
-    Eye,
-    MessageSquare,
-    UserCheck
+    CheckCircle
 } from 'lucide-react';
-import { useDashboardStats } from '@/lib/hooks/api';
 
 const statCards = [
     {
@@ -127,7 +121,7 @@ const linkedInAccounts = [
 ];
 
 export default function DashboardPage() {
-    const { data: stats, isLoading } = useDashboardStats();
+    // Remove: const { data: stats, isLoading } = useDashboardStats();
 
     return (
         <div className="space-y-6">

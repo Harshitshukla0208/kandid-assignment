@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useCampaigns, useUpdateCampaignStatus } from '@/lib/hooks/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +33,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
     Search,
-    Filter,
     Plus,
     MoreHorizontal,
     Play,
@@ -44,7 +42,6 @@ import {
     Users,
     Target,
     TrendingUp,
-    Calendar,
     CheckCircle,
     AlertCircle,
     Clock
@@ -65,12 +62,29 @@ const statusIcons = {
     completed: CheckCircle,
 };
 
-function CampaignRow({ campaign }: { campaign: any }) {
+// Update the type for campaigns fetched from the API
+// Add a type for the API response
+
+type CampaignWithStats = Campaign & {
+    actualTotalLeads?: number;
+    respondedLeads?: number;
+    convertedLeads?: number;
+    contactedLeads?: number;
+};
+
+type CampaignRowProps = { campaign: CampaignWithStats };
+
+function CampaignRow({ campaign }: CampaignRowProps) {
     const updateStatusMutation = useUpdateCampaignStatus();
     const StatusIcon = statusIcons[campaign.status as keyof typeof statusIcons];
 
-    const responseRate = campaign.actualTotalLeads > 0
-        ? Math.round((campaign.respondedLeads / campaign.actualTotalLeads) * 100)
+    const actualTotalLeads = campaign.actualTotalLeads ?? 0;
+    const respondedLeads = campaign.respondedLeads ?? 0;
+    const convertedLeads = campaign.convertedLeads ?? 0;
+    const contactedLeads = campaign.contactedLeads ?? 0;
+
+    const responseRate = actualTotalLeads > 0
+        ? Math.round((respondedLeads / actualTotalLeads) * 100)
         : 0;
 
     const handleStatusChange = async (newStatus: Campaign['status']) => {
@@ -110,14 +124,14 @@ function CampaignRow({ campaign }: { campaign: any }) {
             <TableCell>
                 <div className="flex items-center space-x-2">
                     <Users className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium">{campaign.actualTotalLeads || 0}</span>
+                    <span className="font-medium">{actualTotalLeads}</span>
                 </div>
             </TableCell>
 
             <TableCell>
                 <div className="flex items-center space-x-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span className="font-medium text-green-700">{campaign.convertedLeads || 0}</span>
+                    <span className="font-medium text-green-700">{convertedLeads}</span>
                 </div>
             </TableCell>
 
@@ -126,7 +140,7 @@ function CampaignRow({ campaign }: { campaign: any }) {
                     <div className="flex items-center justify-between text-sm">
                         <span>{responseRate}%</span>
                         <span className="text-gray-500">
-                            {campaign.respondedLeads || 0}/{campaign.actualTotalLeads || 0}
+                            {respondedLeads}/{actualTotalLeads}
                         </span>
                     </div>
                     <Progress value={responseRate} className="h-2" />
@@ -136,13 +150,13 @@ function CampaignRow({ campaign }: { campaign: any }) {
             <TableCell>
                 <div className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                        <span>{campaign.actualTotalLeads > 0 ? Math.round(((campaign.contactedLeads || 0) / campaign.actualTotalLeads) * 100) : 0}%</span>
+                        <span>{actualTotalLeads > 0 ? Math.round((contactedLeads / actualTotalLeads) * 100) : 0}%</span>
                         <span className="text-gray-500">
-                            {campaign.contactedLeads || 0}/{campaign.actualTotalLeads || 0}
+                            {contactedLeads}/{actualTotalLeads}
                         </span>
                     </div>
                     <Progress
-                        value={campaign.actualTotalLeads > 0 ? ((campaign.contactedLeads || 0) / campaign.actualTotalLeads) * 100 : 0}
+                        value={actualTotalLeads > 0 ? (contactedLeads / actualTotalLeads) * 100 : 0}
                         className="h-2"
                     />
                 </div>
@@ -213,15 +227,18 @@ export default function CampaignsPage() {
 
     const { data: campaigns, isLoading, error } = useCampaigns(searchQuery, statusFilter);
 
-    const stats = campaigns?.reduce(
+    // Type assertion for campaigns as CampaignWithStats[]
+    const campaignList = (campaigns ?? []) as CampaignWithStats[];
+
+    const stats = campaignList.reduce(
         (acc, campaign) => ({
             total: acc.total + 1,
             active: acc.active + (campaign.status === 'active' ? 1 : 0),
-            totalLeads: acc.totalLeads + (campaign.actualTotalLeads || 0),
-            totalConverted: acc.totalConverted + (campaign.convertedLeads || 0),
+            totalLeads: acc.totalLeads + (campaign.actualTotalLeads ?? 0),
+            totalConverted: acc.totalConverted + (campaign.convertedLeads ?? 0),
         }),
         { total: 0, active: 0, totalLeads: 0, totalConverted: 0 }
-    ) || { total: 0, active: 0, totalLeads: 0, totalConverted: 0 };
+    );
 
     return (
         <div className="space-y-6">
@@ -344,7 +361,7 @@ export default function CampaignsPage() {
                                         <p className="text-gray-600">Failed to load campaigns</p>
                                     </TableCell>
                                 </TableRow>
-                            ) : campaigns?.length === 0 ? (
+                            ) : campaignList.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center py-8">
                                         <Target className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -352,7 +369,7 @@ export default function CampaignsPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                campaigns?.map((campaign) => (
+                                campaignList.map((campaign) => (
                                     <CampaignRow key={campaign.id} campaign={campaign} />
                                 ))
                             )}

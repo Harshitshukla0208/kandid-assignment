@@ -17,13 +17,41 @@ const api = {
     },
 
     getLead: async (id: string): Promise<Lead & { interactions: LeadInteraction[] }> => {
-        const res = await fetch(`/api/leads/${id}`);
+        const res = await fetch(`/api/lead/${id}`);
         if (!res.ok) throw new Error('Failed to fetch lead');
         return res.json();
     },
 
+    createLead: async (lead: Partial<Lead>): Promise<Lead> => {
+        const res = await fetch('/api/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(lead),
+        });
+        if (!res.ok) throw new Error('Failed to create lead');
+        return res.json();
+    },
+    updateLead: async (lead: Partial<Lead> & { id: string }): Promise<Lead> => {
+        const res = await fetch('/api/leads', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(lead),
+        });
+        if (!res.ok) throw new Error('Failed to update lead');
+        return res.json();
+    },
+    deleteLead: async (id: string): Promise<{ success: boolean }> => {
+        const res = await fetch('/api/leads', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+        });
+        if (!res.ok) throw new Error('Failed to delete lead');
+        return res.json();
+    },
+
     updateLeadStatus: async ({ id, status }: { id: string; status: Lead['status'] }): Promise<Lead> => {
-        const res = await fetch(`/api/leads/${id}`, {
+        const res = await fetch(`/api/lead/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status }),
@@ -43,6 +71,34 @@ const api = {
     getCampaign: async (id: string): Promise<Campaign & { leads: Lead[] }> => {
         const res = await fetch(`/api/campaigns/${id}`);
         if (!res.ok) throw new Error('Failed to fetch campaign');
+        return res.json();
+    },
+
+    createCampaign: async (campaign: Partial<Campaign>): Promise<Campaign> => {
+        const res = await fetch('/api/campaigns', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(campaign),
+        });
+        if (!res.ok) throw new Error('Failed to create campaign');
+        return res.json();
+    },
+    updateCampaign: async (campaign: Partial<Campaign> & { id: string }): Promise<Campaign> => {
+        const res = await fetch('/api/campaigns', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(campaign),
+        });
+        if (!res.ok) throw new Error('Failed to update campaign');
+        return res.json();
+    },
+    deleteCampaign: async (id: string): Promise<{ success: boolean }> => {
+        const res = await fetch('/api/campaigns', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+        });
+        if (!res.ok) throw new Error('Failed to delete campaign');
         return res.json();
     },
 
@@ -84,6 +140,38 @@ export const useLead = (id: string) => {
     });
 };
 
+export const useCreateLead = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: api.createLead,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        },
+    });
+};
+export const useUpdateLead = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: api.updateLead,
+        onSuccess: (updatedLead) => {
+            queryClient.setQueryData(['lead', updatedLead.id], updatedLead);
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        },
+    });
+};
+export const useDeleteLead = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: api.deleteLead,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        },
+    });
+};
+
 export const useUpdateLeadStatus = () => {
     const queryClient = useQueryClient();
 
@@ -113,6 +201,38 @@ export const useCampaign = (id: string) => {
         queryKey: ['campaign', id],
         queryFn: () => api.getCampaign(id),
         enabled: !!id,
+    });
+};
+
+export const useCreateCampaign = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: api.createCampaign,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        },
+    });
+};
+export const useUpdateCampaign = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: api.updateCampaign,
+        onSuccess: (updatedCampaign) => {
+            queryClient.setQueryData(['campaign', updatedCampaign.id], updatedCampaign);
+            queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        },
+    });
+};
+export const useDeleteCampaign = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: api.deleteCampaign,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        },
     });
 };
 

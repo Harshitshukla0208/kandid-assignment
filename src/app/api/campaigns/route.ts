@@ -61,3 +61,81 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const body = await request.json()
+    const { name, status = "draft" } = body
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    }
+    const [campaign] = await db.insert(campaigns).values({
+      name,
+      status,
+      userId: session.user.id,
+      totalLeads: 0,
+      successfulLeads: 0,
+      responseRate: "0.00",
+    }).returning()
+    return NextResponse.json(campaign)
+  } catch (error) {
+    console.error("Error creating campaign:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const body = await request.json()
+    const { id, name, status } = body
+    if (!id) {
+      return NextResponse.json({ error: "Campaign id is required" }, { status: 400 })
+    }
+    const updateData: any = { updatedAt: new Date() }
+    if (name) updateData.name = name
+    if (status) updateData.status = status
+    const [updated] = await db.update(campaigns)
+      .set(updateData)
+      .where(and(eq(campaigns.id, id), eq(campaigns.userId, session.user.id)))
+      .returning()
+    if (!updated) {
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
+    }
+    return NextResponse.json(updated)
+  } catch (error) {
+    console.error("Error updating campaign:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const body = await request.json()
+    const { id } = body
+    if (!id) {
+      return NextResponse.json({ error: "Campaign id is required" }, { status: 400 })
+    }
+    const [deleted] = await db.delete(campaigns)
+      .where(and(eq(campaigns.id, id), eq(campaigns.userId, session.user.id)))
+      .returning()
+    if (!deleted) {
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
+    }
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting campaign:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

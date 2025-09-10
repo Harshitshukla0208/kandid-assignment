@@ -74,3 +74,85 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const body = await request.json()
+    const { firstName, lastName, email, company, jobTitle, status = "pending", campaignId } = body
+    if (!firstName || !lastName || !email || !campaignId) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+    const [lead] = await db.insert(leads).values({
+      firstName,
+      lastName,
+      email,
+      company,
+      jobTitle,
+      status,
+      campaignId,
+      userId: session.user.id,
+      lastContactedAt: status === "contacted" ? new Date() : null,
+    }).returning()
+    return NextResponse.json(lead)
+  } catch (error) {
+    console.error("Error creating lead:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const body = await request.json()
+    const { id, ...updateData } = body
+    if (!id) {
+      return NextResponse.json({ error: "Lead id is required" }, { status: 400 })
+    }
+    updateData.updatedAt = new Date()
+    if (updateData.status === "contacted") {
+      updateData.lastContactedAt = new Date()
+    }
+    const [updated] = await db.update(leads)
+      .set(updateData)
+      .where(and(eq(leads.id, id), eq(leads.userId, session.user.id)))
+      .returning()
+    if (!updated) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 })
+    }
+    return NextResponse.json(updated)
+  } catch (error) {
+    console.error("Error updating lead:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const body = await request.json()
+    const { id } = body
+    if (!id) {
+      return NextResponse.json({ error: "Lead id is required" }, { status: 400 })
+    }
+    const [deleted] = await db.delete(leads)
+      .where(and(eq(leads.id, id), eq(leads.userId, session.user.id)))
+      .returning()
+    if (!deleted) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 })
+    }
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting lead:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

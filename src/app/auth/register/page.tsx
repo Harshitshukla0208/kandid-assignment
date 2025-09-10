@@ -33,14 +33,11 @@ export default function RegisterPage() {
         email,
         password,
         name: `${firstName} ${lastName}`,
-        data: {
-          firstName,
-          lastName,
-        },
       })
       router.push("/dashboard")
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.")
+    } catch (err: unknown) {
+      const message = typeof err === "object" && err && "message" in err ? String((err as any).message) : undefined
+      setError(message || "Registration failed. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -52,7 +49,7 @@ export default function RegisterPage() {
         provider: "google",
         callbackURL: "/auth/callback",
       })
-    } catch (err) {
+    } catch {
       setError("Google sign-up failed. Please try again.")
     }
   }

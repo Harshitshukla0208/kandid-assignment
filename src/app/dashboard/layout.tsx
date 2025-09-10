@@ -6,7 +6,7 @@ import { useSession } from '@/lib/auth-client';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
 import { useUIStore } from '@/lib/stores';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export default function DashboardLayout({
     children,

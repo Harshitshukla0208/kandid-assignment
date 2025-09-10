@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useInfiniteLeads, useUpdateLeadStatus } from '@/lib/hooks/api';
+import { useInfiniteLeads } from '@/lib/hooks/api';
 import { useUIStore } from '@/lib/stores';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,17 +21,20 @@ import { LeadDetailSheet } from '@/components/leads/lead-details-sheet';
 import {
     Search,
     Filter,
-    MoreVertical,
     User,
     Mail,
     Building,
     Clock,
     CheckCircle,
     AlertCircle,
-    XCircle,
     Ban
 } from 'lucide-react';
 import { Lead } from '@/lib/db/schema';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useCreateLead } from '@/lib/hooks/api';
+import { useCampaigns } from '@/lib/hooks/api';
+import { useToast } from '@/lib/hooks/toast';
 
 const statusColors = {
     pending: 'bg-orange-100 text-orange-800',
@@ -49,7 +52,9 @@ const statusIcons = {
     do_not_contact: Ban,
 };
 
-function LeadCard({ lead }: { lead: any }) {
+type LeadCardProps = { lead: Lead & { campaignName?: string } };
+
+function LeadCard({ lead }: LeadCardProps) {
     const { openLeadSheet } = useUIStore();
     const StatusIcon = statusIcons[lead.status as keyof typeof statusIcons];
 
@@ -167,6 +172,55 @@ export default function LeadsPage() {
         setLeadsFilter(value);
     };
 
+    const [addOpen, setAddOpen] = useState(false);
+    const [form, setForm] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        company: '',
+        campaignId: '',
+        notes: '',
+    });
+    const [formError, setFormError] = useState<string | null>(null);
+    const { mutateAsync: createLead, isPending: isCreating } = useCreateLead();
+    const { data: campaignsData } = useCampaigns('', 'all');
+    const toast = useToast();
+
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const handleCampaignChange = (value: string) => {
+        setForm({ ...form, campaignId: value });
+    };
+
+    const handleAddLead = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormError(null);
+        if (!form.firstName || !form.lastName || !form.email || !form.campaignId) {
+            setFormError('Please fill all required fields.');
+            return;
+        }
+        // No dummy campaign check needed, allow any text
+        try {
+            await createLead({
+                firstName: form.firstName,
+                lastName: form.lastName,
+                email: form.email,
+                company: form.company,
+                campaignId: form.campaignId,
+                description: form.notes,
+            });
+            setAddOpen(false);
+            setForm({ firstName: '', lastName: '', email: '', phone: '', company: '', campaignId: '', notes: '' });
+            toast({ title: 'Lead added', description: 'The lead was added successfully.', status: 'success' });
+        } catch (err: any) {
+            setFormError(err.message || 'Failed to add lead.');
+            toast({ title: 'Error', description: err.message || 'Failed to add lead.', status: 'error' });
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -175,6 +229,7 @@ export default function LeadsPage() {
                     <h2 className="text-2xl font-bold text-gray-900">All Leads</h2>
                     <p className="text-gray-600">Manage and track your leads across all campaigns</p>
                 </div>
+
 
                 <div className="flex items-center space-x-3">
                     <div className="relative">
@@ -201,6 +256,76 @@ export default function LeadsPage() {
                             <SelectItem value="do_not_contact">Do Not Contact</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Dialog open={addOpen} onOpenChange={setAddOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="default" onClick={() => setAddOpen(true)}>
+                                + Add Lead
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Add Lead</DialogTitle>
+                            </DialogHeader>
+                            <form className="space-y-4" onSubmit={handleAddLead}>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="firstName">First Name *</Label>
+                                        <Input id="firstName" name="firstName" value={form.firstName} onChange={handleFormChange} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="lastName">Last Name *</Label>
+                                        <Input id="lastName" name="lastName" value={form.lastName} onChange={handleFormChange} required />
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label htmlFor="email">Email *</Label>
+                                    <Input id="email" name="email" type="email" value={form.email} onChange={handleFormChange} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="phone">Phone</Label>
+                                    <Input id="phone" name="phone" value={form.phone} onChange={handleFormChange} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="company">Company</Label>
+                                    <Input id="company" name="company" value={form.company} onChange={handleFormChange} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="campaignId">Campaign *</Label>
+                                    {(!campaignsData || campaignsData.length === 0) ? (
+                                        <>
+                                            <Select value={form.campaignId} onValueChange={handleCampaignChange} disabled>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="No campaigns available" />
+                                                </SelectTrigger>
+                                            </Select>
+                                            <p className="text-xs text-gray-500 mt-1">Create a campaign first to add leads.</p>
+                                        </>
+                                    ) : (
+                                        <Select value={form.campaignId} onValueChange={handleCampaignChange}>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select campaign" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {campaignsData.map((c: any) => (
+                                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                                <div>
+                                    <Label htmlFor="notes">Notes</Label>
+                                    <textarea id="notes" name="notes" className="w-full border rounded-md p-2" value={form.notes} onChange={handleFormChange} rows={3} />
+                                </div>
+                                {formError && <div className="text-red-500 text-sm">{formError}</div>}
+                                <DialogFooter>
+                                    <Button type="submit" disabled={isCreating || !campaignsData || campaignsData.length === 0}>
+                                        {isCreating ? 'Adding...' : 'Add Lead'}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
@@ -270,7 +395,7 @@ export default function LeadsPage() {
                     <>
                         <div className="grid gap-4">
                             {leads.map((lead) => (
-                                <LeadCard key={lead.id} lead={lead} />
+                                <LeadCard key={lead.id} lead={lead as LeadCardProps['lead']} />
                             ))}
                         </div>
 

@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth.api.getSession({
@@ -17,11 +17,13 @@ export async function GET(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const { id } = await context.params;
+
         // Get lead with interactions
         const leadData = await db
             .select()
             .from(leads)
-            .where(and(eq(leads.id, params.id), eq(leads.userId, session.user.id)))
+            .where(and(eq(leads.id, id), eq(leads.userId, session.user.id)))
             .limit(1);
 
         if (leadData.length === 0) {
@@ -31,7 +33,7 @@ export async function GET(
         const interactions = await db
             .select()
             .from(leadInteractions)
-            .where(eq(leadInteractions.leadId, params.id))
+            .where(eq(leadInteractions.leadId, id))
             .orderBy(desc(leadInteractions.createdAt));
 
         return NextResponse.json({
@@ -49,7 +51,7 @@ export async function GET(
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth.api.getSession({
@@ -62,6 +64,7 @@ export async function PATCH(
 
         const body = await request.json();
         const { status } = body;
+        const { id } = await context.params;
 
         // Update lead status
         const updatedLead = await db
@@ -71,7 +74,7 @@ export async function PATCH(
                 updatedAt: new Date(),
                 ...(status === 'contacted' ? { lastContactedAt: new Date() } : {})
             })
-            .where(and(eq(leads.id, params.id), eq(leads.userId, session.user.id)))
+            .where(and(eq(leads.id, id), eq(leads.userId, session.user.id)))
             .returning();
 
         if (updatedLead.length === 0) {

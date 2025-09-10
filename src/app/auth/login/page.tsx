@@ -31,7 +31,7 @@ export default function LoginPage() {
         password,
       })
       router.push("/dashboard")
-    } catch (err) {
+    } catch {
       setError("Invalid credentials. Please try again.")
     } finally {
       setLoading(false)
@@ -44,7 +44,7 @@ export default function LoginPage() {
         provider: "google",
         callbackURL: "/auth/callback",
       })
-    } catch (err) {
+    } catch {
       setError("Google sign-in failed. Please try again.")
     }
   }
@@ -152,7 +152,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-gray-600">Don't have an account? </span>
+              <span className="text-gray-600">Don&apos;t have an account? </span>
               <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
                 Sign up
               </Link>

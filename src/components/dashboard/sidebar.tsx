@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,11 +17,8 @@ import {
     UserCircle,
     ChevronLeft,
     ChevronRight,
-    LogOut,
-    Menu,
-    Bell
+    LogOut
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -121,7 +117,7 @@ export function Sidebar() {
                                     <div className="relative">
                                         <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                                             <span className="text-blue-600 font-semibold text-sm">
-                                                {session?.user.firstName?.[0] || 'K'}
+                                                {(session?.user.name?.[0] || 'K')}
                                             </span>
                                         </div>
                                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
@@ -135,7 +131,7 @@ export function Sidebar() {
                                                 className="text-left overflow-hidden"
                                             >
                                                 <div className="font-medium text-sm text-gray-900">
-                                                    {session?.user.firstName || 'Kandid'}
+                                                    {session?.user.name || 'Kandid'}
                                                 </div>
                                                 <div className="text-xs text-gray-500">Personal</div>
                                             </motion.div>

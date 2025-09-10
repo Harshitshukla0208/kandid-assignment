@@ -21,6 +21,7 @@ const baseUrl =
 console.log("[v0] Better Auth URL:", baseUrl)
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET,
   baseURL: baseUrl,
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -47,11 +48,11 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day
   },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn() {
       // Allow all sign-ins for now
       return true
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
       // Redirect to callback page after OAuth
       if (url.includes("/api/auth/callback/")) {
         return `${baseUrl}/auth/callback`

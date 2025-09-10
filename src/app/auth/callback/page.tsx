@@ -63,7 +63,7 @@ export default function AuthCallbackPage() {
           <CardContent className="p-8 text-center">
             <CheckCircle className="w-8 h-8 mx-auto mb-4 text-green-600" />
             <h2 className="text-xl font-semibold mb-2">Welcome to LinkBird!</h2>
-            <p className="text-gray-600 mb-4">You've successfully signed in. Redirecting to your dashboard...</p>
+            <p className="text-gray-600 mb-4">You&apos;ve successfully signed in. Redirecting to your dashboard...</p>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: "100%" }}></div>
             </div>
