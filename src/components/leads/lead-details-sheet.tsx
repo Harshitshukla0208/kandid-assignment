@@ -1,0 +1,325 @@
+'use client';
+
+import { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useUIStore } from '@/lib/stores';
+import { useLead, useUpdateLeadStatus } from '@/lib/hooks/api';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetClose
+} from '@/components/ui/sheet';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    X,
+    Mail,
+    Building,
+    User,
+    Calendar,
+    MessageSquare,
+    Phone,
+    ExternalLink,
+    CheckCircle,
+    Clock,
+    AlertCircle,
+    Ban,
+    Trash2,
+    UserCheck,
+    Send,
+    MessageCircle
+} from 'lucide-react';
+import { Lead } from '@/lib/db/schema';
+
+const statusOptions = [
+    { value: 'pending', label: 'Pending', icon: Clock, color: 'bg-orange-100 text-orange-800' },
+    { value: 'contacted', label: 'Contacted', icon: Mail, color: 'bg-blue-100 text-blue-800' },
+    { value: 'responded', label: 'Responded', icon: CheckCircle, color: 'bg-green-100 text-green-800' },
+    { value: 'converted', label: 'Converted', icon: CheckCircle, color: 'bg-purple-100 text-purple-800' },
+    { value: 'do_not_contact', label: 'Do Not Contact', icon: Ban, color: 'bg-red-100 text-red-800' },
+];
+
+const interactionTypes = {
+    invitation_request: { label: 'Invitation Request', icon: UserCheck, color: 'bg-blue-100' },
+    connection_status: { label: 'Connection Status', icon: MessageCircle, color: 'bg-gray-100' },
+    connection_acceptance: { label: 'Connection Acceptance Message', icon: CheckCircle, color: 'bg-green-100' },
+    followup: { label: 'Follow-up', icon: Send, color: 'bg-purple-100' },
+};
+
+function InteractionTimeline({ interactions }: { interactions: any[] }) {
+    return (
+        <div className="space-y-4">
+            {interactions.map((interaction, index) => {
+                const type = interactionTypes[interaction.type as keyof typeof interactionTypes];
+                const Icon = type?.icon || MessageSquare;
+
+                return (
+                    <motion.div
+                        key={interaction.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex space-x-3"
+                    >
+                        <div className={`p-2 rounded-full ${type?.color || 'bg-gray-100'} shrink-0`}>
+                            <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                                <h4 className="text-sm font-medium text-gray-900">
+                                    {type?.label || 'Activity'}
+                                </h4>
+                                <Badge
+                                    variant={interaction.status === 'pending' ? 'secondary' : 'default'}
+                                    className="text-xs"
+                                >
+                                    {interaction.status}
+                                </Badge>
+                            </div>
+                            {interaction.message && (
+                                <p className="text-sm text-gray-600 mb-2">
+                                    {interaction.message.length > 150
+                                        ? `${interaction.message.substring(0, 150)}...`
+                                        : interaction.message
+                                    }
+                                </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                                {new Date(interaction.createdAt).toLocaleString()}
+                            </p>
+                        </div>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+export function LeadDetailSheet() {
+    const {
+        selectedLead,
+        isLeadSheetOpen,
+        closeLeadSheet,
+        setSelectedLead
+    } = useUIStore();
+
+    const { data: leadData, isLoading } = useLead(selectedLead?.id || '');
+    const updateStatusMutation = useUpdateLeadStatus();
+
+    // Handle ESC key
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isLeadSheetOpen) {
+                closeLeadSheet();
+            }
+        };
+
+        if (isLeadSheetOpen) {
+            document.addEventListener('keydown', handleEsc);
+            return () => document.removeEventListener('keydown', handleEsc);
+        }
+    }, [isLeadSheetOpen, closeLeadSheet]);
+
+    const handleStatusUpdate = async (newStatus: Lead['status']) => {
+        if (!selectedLead) return;
+
+        try {
+            await updateStatusMutation.mutateAsync({
+                id: selectedLead.id,
+                status: newStatus,
+            });
+
+            // Update the selected lead with new status
+            setSelectedLead({ ...selectedLead, status: newStatus });
+        } catch (error) {
+            console.error('Failed to update lead status:', error);
+        }
+    };
+
+    const currentStatus = statusOptions.find(s => s.value === selectedLead?.status);
+    const StatusIcon = currentStatus?.icon || Clock;
+
+    return (
+        <Sheet open={isLeadSheetOpen} onOpenChange={closeLeadSheet}>
+            <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+                <AnimatePresence mode="wait">
+                    {isLoading ? (
+                        <motion.div
+                            key="loading"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="space-y-6"
+                        >
+                            <div className="flex items-center space-x-4">
+                                <Skeleton className="w-16 h-16 rounded-full" />
+                                <div className="space-y-2 flex-1">
+                                    <Skeleton className="h-6 w-3/4" />
+                                    <Skeleton className="h-4 w-1/2" />
+                                </div>
+                            </div>
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <Skeleton key={i} className="h-20 w-full" />
+                            ))}
+                        </motion.div>
+                    ) : leadData ? (
+                        <motion.div
+                            key="content"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="space-y-6"
+                        >
+                            {/* Header */}
+                            <SheetHeader>
+                                <div className="flex items-center justify-between">
+                                    <SheetTitle className="text-xl font-bold">Lead Profile</SheetTitle>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={closeLeadSheet}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </SheetHeader>
+
+                            {/* Lead Info */}
+                            <div className="space-y-4">
+                                <div className="flex items-start space-x-4">
+                                    <Avatar className="w-16 h-16">
+                                        <AvatarFallback className="bg-blue-100 text-blue-700 text-lg font-semibold">
+                                            {leadData.firstName[0]}{leadData.lastName[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 space-y-2">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-900">
+                                                {leadData.firstName} {leadData.lastName}
+                                            </h2>
+                                            {leadData.jobTitle && (
+                                                <p className="text-gray-600">{leadData.jobTitle}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center space-x-2">
+                                            <StatusIcon className="w-4 h-4" />
+                                            <Badge className={currentStatus?.color}>
+                                                {currentStatus?.label}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+
+                                {/* Contact Info */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Contact Information</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        <div className="flex items-center space-x-3">
+                                            <Mail className="w-4 h-4 text-gray-500" />
+                                            <span className="text-gray-900">{leadData.email}</span>
+                                            <Button variant="ghost" size="icon" className="w-8 h-8">
+                                                <ExternalLink className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+
+                                        {leadData.company && (
+                                            <div className="flex items-center space-x-3">
+                                                <Building className="w-4 h-4 text-gray-500" />
+                                                <span className="text-gray-900">{leadData.company}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center space-x-3">
+                                            <Calendar className="w-4 h-4 text-gray-500" />
+                                            <span className="text-gray-600">
+                                                Added {new Date(leadData.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Status Update */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Update Status</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Select
+                                            value={leadData.status}
+                                            onValueChange={handleStatusUpdate}
+                                            disabled={updateStatusMutation.isPending}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {statusOptions.map((status) => (
+                                                    <SelectItem key={status.value} value={status.value}>
+                                                        <div className="flex items-center space-x-2">
+                                                            <status.icon className="w-4 h-4" />
+                                                            <span>{status.label}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Activity Timeline */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Activity Timeline</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {leadData.interactions && leadData.interactions.length > 0 ? (
+                                            <InteractionTimeline interactions={leadData.interactions} />
+                                        ) : (
+                                            <div className="text-center py-6 text-gray-500">
+                                                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                                <p>No activity yet</p>
+                                                <p className="text-sm">Interactions will appear here</p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Action Buttons */}
+                                <div className="flex space-x-2 pt-4 border-t">
+                                    <Button className="flex-1">
+                                        <Send className="w-4 h-4 mr-2" />
+                                        Send Message
+                                    </Button>
+                                    <Button variant="outline" className="flex-1">
+                                        <UserCheck className="w-4 h-4 mr-2" />
+                                        Connect
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ) : null}
+                </AnimatePresence>
+            </SheetContent>
+        </Sheet>
+    );
+}
