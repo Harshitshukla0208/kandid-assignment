@@ -1,6 +1,5 @@
 'use client';
-
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/auth-client';
 import { Sidebar } from '@/components/dashboard/sidebar';
@@ -16,6 +15,17 @@ export default function DashboardLayout({
     const { data: session, isPending } = useSession();
     const router = useRouter();
     const { sidebarCollapsed } = useUIStore();
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkScreenSize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
 
     useEffect(() => {
         if (!isPending && !session) {
@@ -38,18 +48,16 @@ export default function DashboardLayout({
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
-
             {/* Main Content */}
             <motion.div
-                className="flex-1 flex flex-col"
+                className="flex-1 flex flex-col min-w-0"
                 animate={{
-                    marginLeft: sidebarCollapsed ? '80px' : '280px',
+                    marginLeft: isMobile ? '0px' : (sidebarCollapsed ? '80px' : '280px'),
                 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
                 <Header />
-
-                <main className="flex-1 p-6">
+                <main className="flex-1 p-3 sm:p-4 md:p-6">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

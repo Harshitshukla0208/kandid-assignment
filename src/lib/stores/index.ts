@@ -4,6 +4,7 @@ import { Lead, Campaign } from '@/lib/db/schema';
 // UI State Store
 interface UIState {
     sidebarCollapsed: boolean;
+    mobileMenuOpen: boolean;
     selectedLead: Lead | null;
     selectedCampaign: Campaign | null;
     leadsFilter: string;
@@ -15,6 +16,9 @@ interface UIState {
     // Actions
     toggleSidebar: () => void;
     setSidebarCollapsed: (collapsed: boolean) => void;
+    toggleMobileMenu: () => void;
+    openMobileMenu: () => void;
+    closeMobileMenu: () => void;
     setSelectedLead: (lead: Lead | null) => void;
     setSelectedCampaign: (campaign: Campaign | null) => void;
     setLeadsFilter: (filter: string) => void;
@@ -26,8 +30,9 @@ interface UIState {
     closeLeadSheet: () => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
-    sidebarCollapsed: false,
+export const useUIStore = create<UIState>((set, get) => ({
+    sidebarCollapsed: typeof window !== 'undefined' ? (localStorage.getItem('sidebarCollapsed') === 'true') : false,
+    mobileMenuOpen: false,
     selectedLead: null,
     selectedCampaign: null,
     leadsFilter: 'all',
@@ -36,13 +41,24 @@ export const useUIStore = create<UIState>((set) => ({
     campaignSearchQuery: '',
     isLeadSheetOpen: false,
 
-    toggleSidebar: () => set((state) => ({
-        sidebarCollapsed: !state.sidebarCollapsed
-    })),
-
-    setSidebarCollapsed: (collapsed) => set({
-        sidebarCollapsed: collapsed
+    toggleSidebar: () => set((state) => {
+        const next = !state.sidebarCollapsed;
+        if (typeof window !== 'undefined') {
+            try { localStorage.setItem('sidebarCollapsed', String(next)); } catch {}
+        }
+        return { sidebarCollapsed: next };
     }),
+
+    setSidebarCollapsed: (collapsed) => {
+        if (typeof window !== 'undefined') {
+            try { localStorage.setItem('sidebarCollapsed', String(collapsed)); } catch {}
+        }
+        set({ sidebarCollapsed: collapsed });
+    },
+
+    toggleMobileMenu: () => set((state) => ({ mobileMenuOpen: !state.mobileMenuOpen })),
+    openMobileMenu: () => set({ mobileMenuOpen: true }),
+    closeMobileMenu: () => set({ mobileMenuOpen: false }),
 
     setSelectedLead: (lead) => set({
         selectedLead: lead

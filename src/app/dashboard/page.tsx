@@ -121,12 +121,10 @@ const linkedInAccounts = [
 ];
 
 export default function DashboardPage() {
-    // Remove: const { data: stats, isLoading } = useDashboardStats();
-
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={stat.title}
@@ -134,24 +132,24 @@ export default function DashboardPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: index * 0.1 }}
                     >
-                        <Card>
+                        <Card className="h-full">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-gray-600">
+                                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 line-clamp-2">
                                     {stat.title}
                                 </CardTitle>
-                                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                                    <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                                <div className={`p-1.5 sm:p-2 rounded-lg ${stat.bgColor} flex-shrink-0`}>
+                                    <stat.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${stat.color}`} />
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stat.value}</div>
+                            <CardContent className="pt-0">
+                                <div className="text-lg sm:text-2xl font-bold">{stat.value}</div>
                             </CardContent>
                         </Card>
                     </motion.div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
                 {/* Campaigns */}
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -159,31 +157,31 @@ export default function DashboardPage() {
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                             <div>
-                                <CardTitle>Campaigns</CardTitle>
-                                <CardDescription>Manage your campaigns and track their performance.</CardDescription>
+                                <CardTitle className="text-lg sm:text-xl">Campaigns</CardTitle>
+                                <CardDescription className="text-sm">Manage your campaigns and track their performance.</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="self-start sm:self-auto">
                                 All Campaigns
                             </Button>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
+                            <div className="space-y-3 sm:space-y-4">
                                 {campaigns.map((campaign) => (
-                                    <div key={campaign.name} className="flex items-center justify-between p-3 rounded-lg border">
-                                        <div className="flex-1">
+                                    <div key={campaign.name} className="flex items-center justify-between p-2 sm:p-3 rounded-lg border">
+                                        <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="font-medium">{campaign.name}</span>
-                                                <Badge variant="secondary" className="text-green-700 bg-green-100">
+                                                <span className="font-medium text-sm sm:text-base truncate pr-2">{campaign.name}</span>
+                                                <Badge variant="secondary" className="text-green-700 bg-green-100 text-xs flex-shrink-0">
                                                     {campaign.status}
                                                 </Badge>
                                             </div>
-                                            <div className="flex items-center justify-between text-sm text-gray-600">
+                                            <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
                                                 <span>{campaign.leads} leads</span>
                                                 <span>{campaign.progress}%</span>
                                             </div>
-                                            <Progress value={campaign.progress} className="mt-2 h-2" />
+                                            <Progress value={campaign.progress} className="mt-2 h-1.5 sm:h-2" />
                                         </div>
                                     </div>
                                 ))}
@@ -199,40 +197,40 @@ export default function DashboardPage() {
                     transition={{ duration: 0.5, delay: 0.5 }}
                 >
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                             <div>
-                                <CardTitle>Recent Activity</CardTitle>
-                                <CardDescription>Latest lead interactions and updates.</CardDescription>
+                                <CardTitle className="text-lg sm:text-xl">Recent Activity</CardTitle>
+                                <CardDescription className="text-sm">Latest lead interactions and updates.</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="self-start sm:self-auto">
                                 Most Recent
                             </Button>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                            <div className="space-y-2 sm:space-y-3 max-h-72 sm:max-h-96 overflow-y-auto">
                                 {recentActivity.map((activity, index) => (
-                                    <div key={index} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
-                                        <Avatar className="w-8 h-8">
+                                    <div key={index} className="flex items-center space-x-2 sm:space-x-3 p-2 rounded-lg hover:bg-gray-50">
+                                        <Avatar className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0">
                                             <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
                                                 {activity.avatar}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-gray-900 truncate">
+                                            <div className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                                                 {activity.name}
                                             </div>
                                             <div className="text-xs text-gray-500 truncate">
                                                 {activity.title}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-xs text-gray-600">{activity.campaign}</div>
+                                        <div className="text-right flex-shrink-0">
+                                            <div className="text-xs text-gray-600 hidden sm:block">{activity.campaign}</div>
                                             <Badge
                                                 variant={activity.status.includes('Pending') ? 'secondary' :
                                                     activity.status.includes('Do Not') ? 'destructive' : 'default'}
                                                 className="text-xs mt-1"
                                             >
-                                                {activity.status}
+                                                {activity.status.length > 15 ? activity.status.substring(0, 15) + '...' : activity.status}
                                             </Badge>
                                         </div>
                                     </div>
@@ -251,33 +249,34 @@ export default function DashboardPage() {
             >
                 <Card>
                     <CardHeader>
-                        <CardTitle>LinkedIn Accounts</CardTitle>
-                        <CardDescription>Manage your connected LinkedIn accounts and their performance.</CardDescription>
+                        <CardTitle className="text-lg sm:text-xl">LinkedIn Accounts</CardTitle>
+                        <CardDescription className="text-sm">Manage your connected LinkedIn accounts and their performance.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                             {linkedInAccounts.map((account) => (
-                                <div key={account.name} className="border rounded-lg p-4">
-                                    <div className="flex items-center space-x-3 mb-3">
-                                        <Avatar>
-                                            <AvatarFallback className="bg-blue-100 text-blue-700">
+                                <div key={account.name} className="border rounded-lg p-3 sm:p-4">
+                                    <div className="flex items-center space-x-2 sm:space-x-3 mb-3">
+                                        <Avatar className="flex-shrink-0">
+                                            <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
                                                 {account.name.split(' ').map(n => n[0]).join('')}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="flex-1">
-                                            <div className="font-medium">{account.name}</div>
-                                            <div className="text-sm text-gray-600">{account.email}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm sm:text-base truncate">{account.name}</div>
+                                            <div className="text-xs sm:text-sm text-gray-600 truncate">{account.email}</div>
                                         </div>
-                                        <Badge variant="secondary" className="text-green-700 bg-green-100">
-                                            <CheckCircle className="w-3 h-3 mr-1" />
-                                            Connected
+                                        <Badge variant="secondary" className="text-green-700 bg-green-100 flex-shrink-0 text-xs">
+                                            <CheckCircle className="w-2 h-2 sm:w-3 sm:h-3 mr-1" />
+                                            <span className="hidden sm:inline">Connected</span>
+                                            <span className="sm:hidden">✓</span>
                                         </Badge>
                                     </div>
-                                    <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                                    <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-2">
                                         <span>Requests: {account.requests}</span>
                                         <span>{account.progress}%</span>
                                     </div>
-                                    <Progress value={account.progress} className="h-2" />
+                                    <Progress value={account.progress} className="h-1.5 sm:h-2" />
                                 </div>
                             ))}
                         </div>

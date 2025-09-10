@@ -1,51 +1,178 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Kandid Assignment — Linkbird.ai UI (Leads & Campaigns)
 
-## Getting Started
+Production demo: [kandid-assignment-harshit.vercel.app](https://kandid-assignment-harshit.vercel.app/)
 
-First, run the development server:
+### Overview
+This project replicates core UI/UX from Linkbird.ai for two sections: Leads and Campaigns. It implements authentication (email/password + Google OAuth), a responsive dashboard layout (collapsible sidebar, breadcrumb header), data fetching via TanStack Query, and a PostgreSQL + Drizzle ORM backend.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Tech Stack
+- Next.js 15 (App Router), React 19
+- Tailwind CSS + shadcn/ui
+- PostgreSQL + Drizzle ORM
+- Better Auth (credentials + Google OAuth)
+- TanStack Query (React Query v5)
+- Zustand (UI state)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Environment Variables
-
-Before running the project, create a `.env` file in the root directory with the following variables:
-
-```
-DATABASE_URL=your-db-url
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-BETTER_AUTH_URL=http://localhost:3000
-```
-
-See `.env.example` for details.
+### Live Demo
+- URL: [kandid-assignment-harshit.vercel.app](https://kandid-assignment-harshit.vercel.app/)
 
 ---
 
-## Learn More
+## Features
 
-To learn more about Next.js, take a look at the following resources:
+- Authentication
+  - Email/password login and registration (Better Auth)
+  - Google OAuth login
+  - Session management, logout, and protected dashboard routes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Application Shell
+  - Collapsible sidebar with active state and profile/logout
+  - Mobile navigation overlay with backdrop and Escape-to-close
+  - Persistent collapse state (localStorage)
+  - Header with breadcrumbs and search
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Leads
+  - Search and status filtering
+  - Paginated/infinite loading pattern (Load More)
+  - Lead detail side sheet with status update and campaign linkage
+  - Loading skeletons and error states
 
-## Deploy on Vercel
+- Campaigns
+  - Campaigns table with status, totals, response rate, progress bar
+  - Filters and aggregated summary cards
+  - Actions menu with status update
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Getting Started (Local Development)
+
+### 1) Prerequisites
+- Node.js 20+
+- PostgreSQL 14+
+
+### 2) Install dependencies
+```bash
+npm install
+```
+
+### 3) Environment variables
+Create a `.env` file in the project root:
+```bash
+# Database
+DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DB_NAME
+
+# Better Auth
+BETTER_AUTH_SECRET=your-strong-random-secret
+BETTER_AUTH_URL=http://localhost:3000
+
+# Google OAuth (create OAuth credentials at Google Cloud Console)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Optional in deployment (Vercel sets this):
+# VERCEL_URL=your-vercel-domain.vercel.app
+```
+
+### 4) Database setup (Drizzle ORM)
+- Configure connection in `drizzle.config.ts` (already set up for `DATABASE_URL`).
+- Run migrations (using the existing migrations in `drizzle/`):
+```bash
+npx drizzle-kit push
+# or, if you prefer to generate then migrate:
+npx drizzle-kit generate
+npx drizzle-kit push
+```
+
+### 5) Run the app
+```bash
+npm run dev
+# http://localhost:3000
+```
+
+### 6) Build & start
+```bash
+npm run build
+npm start
+```
+
+### 7) Lint
+```bash
+npm run lint
+```
+
+---
+
+## Project Structure (Key Paths)
+
+- `src/app/`
+  - `auth/login`, `auth/register`, `auth/callback`: Auth pages
+  - `dashboard/`: Dashboard shell (sidebar + header + routes)
+  - `api/`: Route handlers for auth, leads, campaigns, dashboard stats
+- `src/components/`: UI components (sidebar, header, shadcn/ui primitives, leads sheet)
+- `src/lib/`
+  - `auth.ts`, `auth-client.ts`: Better Auth server/client
+  - `db/`: Drizzle client and schema
+  - `hooks/api.ts`: TanStack Query data hooks
+  - `stores/`: Zustand store for UI state and selections
+
+---
+
+## API Overview (Selected)
+
+All endpoints require an authenticated session unless specified.
+
+- Auth (Better Auth handler)
+  - `GET/POST /api/auth/[...auth]`
+
+- Leads
+  - `GET /api/leads?search=&filter=&page=&limit=` — List with filtering and pagination
+  - `POST /api/leads` — Create a lead
+  - `PATCH /api/leads` — Bulk updates (where applicable)
+  - `GET /api/leads/[id]` — Lead by ID
+  - `PATCH /api/leads/[id]` — Update a lead (e.g., status)
+
+- Campaigns
+  - `GET /api/campaigns?search=&filter=` — List campaigns with derived stats
+  - `POST /api/campaigns` — Create a campaign
+
+- Dashboard
+  - `GET /api/dashboard/stats` — Aggregated stats for overview
+
+---
+
+## Notes on Implementation
+
+- UI State
+  - Sidebar collapse persists via `localStorage`.
+  - Mobile menu state handled by Zustand; backdrop + Escape close implemented.
+
+- Data Fetching
+  - TanStack Query with sensible defaults and devtools enabled in development.
+
+- Security
+  - Server routes validate session via Better Auth before accessing user data.
+  - Ensure strong `BETTER_AUTH_SECRET` in production and secure DB/network config.
+
+---
+
+## Deployment (Vercel)
+
+1) Create a new Vercel project and link this repository.
+2) Configure Environment Variables in Vercel Project Settings:
+   - `DATABASE_URL`
+   - `BETTER_AUTH_SECRET`
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `BETTER_AUTH_URL` (e.g., `https://your-domain.vercel.app`)
+3) Add a production PostgreSQL database (Neon, Supabase, or Vercel Postgres) and set `DATABASE_URL`.
+4) Trigger a deployment; after the first build, run Drizzle migrations (if not automated) via a one-off job:
+   - `npx drizzle-kit push`
+5) Verify OAuth redirect URIs include:
+   - `https://your-domain.vercel.app/api/auth/callback/google`
+6) Visit the live app: [kandid-assignment-harshit.vercel.app](https://kandid-assignment-harshit.vercel.app/)
+
+---
+
+## Attribution
+- Live demo: [kandid-assignment-harshit.vercel.app](https://kandid-assignment-harshit.vercel.app/)
+

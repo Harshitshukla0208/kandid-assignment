@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '@/lib/stores';
 import { useSession, signOut } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
 import {
     LayoutDashboard,
     Users,
@@ -17,7 +18,9 @@ import {
     UserCircle,
     ChevronLeft,
     ChevronRight,
-    LogOut
+    LogOut,
+    Menu,
+    X
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -49,26 +52,129 @@ const navigationItems = [
 export function Sidebar() {
     const { data: session } = useSession();
     const pathname = usePathname();
-    const { sidebarCollapsed, toggleSidebar } = useUIStore();
+    const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
+    const [isMobile, setIsMobile] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    // Check if component is mounted (hydration fix)
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Handle screen size detection
+    useEffect(() => {
+        const checkScreenSize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
+
+    // Close mobile menu when route changes
+    useEffect(() => {
+        if (isMobile && mobileMenuOpen) {
+            closeMobileMenu();
+        }
+    }, [pathname, isMobile]);
+
+    // Close mobile menu when resizing to desktop
+    useEffect(() => {
+        if (!isMobile && mobileMenuOpen) {
+            closeMobileMenu();
+        }
+    }, [isMobile, mobileMenuOpen, closeMobileMenu]);
+
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (!isMobile) return;
+        const original = document.body.style.overflow;
+        if (mobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = original || '';
+        }
+        return () => {
+            document.body.style.overflow = original || '';
+        };
+    }, [isMobile, mobileMenuOpen]);
+
+    // Close on Escape when mobile menu is open
+    useEffect(() => {
+        if (!isMobile || !mobileMenuOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                closeMobileMenu();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isMobile, mobileMenuOpen, closeMobileMenu]);
+
+    // Handle mobile menu backdrop click
+    const handleBackdropClick = () => {
+        if (isMobile && mobileMenuOpen) {
+            toggleMobileMenu();
+        }
+    };
 
     const handleSignOut = async () => {
         await signOut();
     };
 
+    // Don't render until mounted to prevent hydration mismatch
+    if (!mounted) {
+        return null;
+    }
+
     return (
         <>
+            {/* Mobile Menu Button - Only visible on mobile */}
+            {isMobile && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleMobileMenu}
+                    className="fixed top-4 left-4 z-50 md:hidden bg-white shadow-md"
+                >
+                    {mobileMenuOpen ? (
+                        <X className="w-5 h-5" />
+                    ) : (
+                        <Menu className="w-5 h-5" />
+                    )}
+                </Button>
+            )}
+
+            {/* Mobile Backdrop */}
+            <AnimatePresence>
+                {isMobile && mobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                        onClick={handleBackdropClick}
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Sidebar */}
             <motion.div
-                className="fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm z-40"
+                className={`
+                    fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm z-40
+                    ${isMobile ? 'md:relative' : ''}
+                `}
                 animate={{
-                    width: sidebarCollapsed ? '80px' : '280px',
+                    width: isMobile ? '280px' : (sidebarCollapsed ? '80px' : '280px'),
+                    x: isMobile ? (mobileMenuOpen ? 0 : -280) : 0,
                 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                     <AnimatePresence mode="wait">
-                        {!sidebarCollapsed && (
+                        {(!sidebarCollapsed || isMobile) && (
                             <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -83,18 +189,33 @@ export function Sidebar() {
                         )}
                     </AnimatePresence>
 
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={toggleSidebar}
-                        className="shrink-0"
-                    >
-                        {sidebarCollapsed ? (
-                            <ChevronRight className="w-4 h-4" />
-                        ) : (
-                            <ChevronLeft className="w-4 h-4" />
-                        )}
-                    </Button>
+                    {/* Desktop toggle button - Hidden on mobile */}
+                    {!isMobile && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleSidebar}
+                            className="shrink-0"
+                        >
+                            {sidebarCollapsed ? (
+                                <ChevronRight className="w-4 h-4" />
+                            ) : (
+                                <ChevronLeft className="w-4 h-4" />
+                            )}
+                        </Button>
+                    )}
+
+                    {/* Mobile close button */}
+                    {isMobile && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleMobileMenu}
+                            className="shrink-0"
+                        >
+                            <X className="w-4 h-4" />
+                        </Button>
+                    )}
                 </div>
 
                 {/* User Profile */}
@@ -103,7 +224,7 @@ export function Sidebar() {
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="ghost"
-                                className={`w-full ${sidebarCollapsed ? 'px-2' : 'justify-start px-3'} h-auto py-2`}
+                                className={`w-full ${(sidebarCollapsed && !isMobile) ? 'px-2' : 'justify-start px-3'} h-auto py-2`}
                             >
                                 <div className="flex items-center space-x-3">
                                     <div className="relative">
@@ -115,7 +236,7 @@ export function Sidebar() {
                                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                                     </div>
                                     <AnimatePresence>
-                                        {!sidebarCollapsed && (
+                                        {(!sidebarCollapsed || isMobile) && (
                                             <motion.div
                                                 initial={{ opacity: 0, width: 0 }}
                                                 animate={{ opacity: 1, width: 'auto' }}
@@ -148,7 +269,7 @@ export function Sidebar() {
                     {navigationItems.map((section) => (
                         <div key={section.title} className="mb-6">
                             <AnimatePresence>
-                                {!sidebarCollapsed && (
+                                {(!sidebarCollapsed || isMobile) && (
                                     <motion.div
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
@@ -172,22 +293,22 @@ export function Sidebar() {
                                                 whileHover={{ x: 2 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 className={`
-                          flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                          ${isActive
+                                                    flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                                                    ${isActive
                                                         ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                                                         : 'text-gray-700 hover:bg-gray-100'
                                                     }
-                        `}
+                                                `}
                                             >
                                                 <item.icon
                                                     className={`
-                            w-5 h-5 shrink-0
-                            ${isActive ? 'text-blue-700' : 'text-gray-500'}
-                          `}
+                                                        w-5 h-5 shrink-0
+                                                        ${isActive ? 'text-blue-700' : 'text-gray-500'}
+                                                    `}
                                                 />
 
                                                 <AnimatePresence>
-                                                    {!sidebarCollapsed && (
+                                                    {(!sidebarCollapsed || isMobile) && (
                                                         <motion.span
                                                             initial={{ opacity: 0, width: 0, marginLeft: 0 }}
                                                             animate={{ opacity: 1, width: 'auto', marginLeft: 12 }}
@@ -199,7 +320,7 @@ export function Sidebar() {
                                                     )}
                                                 </AnimatePresence>
 
-                                                {item.badge && !sidebarCollapsed && (
+                                                {item.badge && (!sidebarCollapsed || isMobile) && (
                                                     <motion.span
                                                         initial={{ scale: 0 }}
                                                         animate={{ scale: 1 }}
