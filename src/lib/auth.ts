@@ -13,10 +13,10 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 const baseUrl =
   process.env.BETTER_AUTH_URL ||
   (process.env.NODE_ENV === "development"
-    ? "http://localhost:3000"
+    ? "https://kandid-assignment-harshit.vercel.app"
     : process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000")
+      : "https://kandid-assignment-harshit.vercel.app")
 
 console.log("[v0] Better Auth URL:", baseUrl)
 

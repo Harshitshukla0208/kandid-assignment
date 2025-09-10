@@ -4,7 +4,7 @@ import { createAuthClient } from "better-auth/react"
 const getBaseURL = () => {
   // In development, always use localhost
   if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-    return "http://localhost:3000"
+    return "https://kandid-assignment-harshit.vercel.app"
   }
 
   // Use NEXT_PUBLIC_BETTER_AUTH_URL if available (client-accessible)
@@ -18,7 +18,7 @@ const getBaseURL = () => {
   }
 
   // Fallback for SSR
-  return "http://localhost:3000"
+  return "https://kandid-assignment-harshit.vercel.app"
 }
 
 const baseURL = getBaseURL()
