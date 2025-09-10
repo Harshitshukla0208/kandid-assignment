@@ -36,20 +36,12 @@ const navigationItems = [
             { name: 'Leads', href: '/dashboard/leads', icon: Users },
             { name: 'Campaign', href: '/dashboard/campaigns', icon: Target },
             { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare, badge: '0+' },
-            { name: 'LinkedIn Accounts', href: '/dashboard/linkedin-accounts', icon: Linkedin },
         ],
     },
     {
         title: 'Settings',
         items: [
             { name: 'Setting & Billing', href: '/dashboard/settings', icon: Settings },
-        ],
-    },
-    {
-        title: 'Admin Panel',
-        items: [
-            { name: 'Activity logs', href: '/dashboard/activity-logs', icon: Activity },
-            { name: 'User logs', href: '/dashboard/user-logs', icon: UserCircle },
         ],
     },
 ];
