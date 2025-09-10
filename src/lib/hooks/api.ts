@@ -1,25 +1,141 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { Lead, Campaign, LeadInteraction } from '@/lib/db/schema';
 
+// --- Static demo data (frontend-only hardcoded) ---
+const STATIC_CAMPAIGNS: (Campaign & {
+  actualTotalLeads?: number;
+  respondedLeads?: number;
+  convertedLeads?: number;
+  contactedLeads?: number;
+})[] = [
+  {
+    id: 'c1-1111-1111-1111-111111111111',
+    name: 'Product Launch Outreach',
+    status: 'active',
+    userId: 'u-demo-user-id',
+    totalLeads: 3,
+    successfulLeads: 1,
+    responseRate: '33.00' as unknown as any,
+    createdAt: new Date() as unknown as any,
+    updatedAt: new Date() as unknown as any,
+    actualTotalLeads: 3,
+    respondedLeads: 1,
+    convertedLeads: 1,
+    contactedLeads: 1,
+  },
+  {
+    id: 'c2-2222-2222-2222-222222222222',
+    name: 'Webinar Signups',
+    status: 'paused',
+    userId: 'u-demo-user-id',
+    totalLeads: 3,
+    successfulLeads: 0,
+    responseRate: '0.00' as unknown as any,
+    createdAt: new Date() as unknown as any,
+    updatedAt: new Date() as unknown as any,
+    actualTotalLeads: 0,
+    respondedLeads: 0,
+    convertedLeads: 0,
+    contactedLeads: 0,
+  },
+  {
+    id: 'c3-3333-3333-3333-333333333333',
+    name: 'Beta Waitlist',
+    status: 'draft',
+    userId: 'u-demo-user-id',
+    totalLeads: 0,
+    successfulLeads: 0,
+    responseRate: '0.00' as unknown as any,
+    createdAt: new Date() as unknown as any,
+    updatedAt: new Date() as unknown as any,
+    actualTotalLeads: 0,
+    respondedLeads: 0,
+    convertedLeads: 0,
+    contactedLeads: 0,
+  },
+];
+
+const STATIC_LEADS: (Lead & { campaignName?: string; interactions?: LeadInteraction[] })[] = [
+  {
+    id: 'l1-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    firstName: 'Alice',
+    lastName: 'Nguyen',
+    email: 'alice.nguyen@example.com',
+    company: 'Acme Co.',
+    jobTitle: 'Engineering Manager',
+    description: 'Interested in product launch details.',
+    status: 'responded',
+    campaignId: 'c1-1111-1111-1111-111111111111',
+    userId: 'u-demo-user-id',
+    lastContactedAt: new Date() as unknown as any,
+    createdAt: new Date() as unknown as any,
+    updatedAt: new Date() as unknown as any,
+    campaignName: 'Product Launch Outreach',
+    interactions: [],
+  },
+  {
+    id: 'l2-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    firstName: 'Brian',
+    lastName: 'Lee',
+    email: 'brian.lee@example.com',
+    company: 'Globex',
+    jobTitle: 'Founder',
+    description: 'Asked about pricing tiers.',
+    status: 'contacted',
+    campaignId: 'c1-1111-1111-1111-111111111111',
+    userId: 'u-demo-user-id',
+    lastContactedAt: new Date() as unknown as any,
+    createdAt: new Date() as unknown as any,
+    updatedAt: new Date() as unknown as any,
+    campaignName: 'Product Launch Outreach',
+    interactions: [],
+  },
+  {
+    id: 'l3-cccc-cccc-cccc-cccccccccccc',
+    firstName: 'Chloe',
+    lastName: 'Ramos',
+    email: 'chloe.ramos@example.com',
+    company: 'Initech',
+    jobTitle: 'Product Designer',
+    description: 'Interested in beta access.',
+    status: 'pending',
+    campaignId: 'c3-3333-3333-3333-333333333333',
+    userId: 'u-demo-user-id',
+    lastContactedAt: null as unknown as any,
+    createdAt: new Date() as unknown as any,
+    updatedAt: new Date() as unknown as any,
+    campaignName: 'Beta Waitlist',
+    interactions: [],
+  },
+];
+
 // API functions
 const api = {
     // Leads
     getLeads: async (page = 0, search = '', filter = 'all'): Promise<{ leads: Lead[]; hasMore: boolean }> => {
-        const params = new URLSearchParams({
-            page: page.toString(),
-            limit: '20',
-            search,
-            filter,
+        // Frontend hardcoded data: basic search/filter on the client
+        const normalizedSearch = search.trim().toLowerCase();
+        const filtered = STATIC_LEADS.filter((lead) => {
+            const matchesSearch = !normalizedSearch
+                || lead.firstName.toLowerCase().includes(normalizedSearch)
+                || lead.lastName.toLowerCase().includes(normalizedSearch)
+                || lead.email.toLowerCase().includes(normalizedSearch)
+                || (lead.company ? lead.company.toLowerCase().includes(normalizedSearch) : false);
+            const matchesFilter = filter === 'all' || lead.status === (filter as Lead['status']);
+            return matchesSearch && matchesFilter;
         });
-        const res = await fetch(`/api/leads?${params}`);
-        if (!res.ok) throw new Error('Failed to fetch leads');
-        return res.json();
+        // Simulate pagination (20 per page)
+        const start = page * 20;
+        const pageLeads = filtered.slice(start, start + 20);
+        const hasMore = start + 20 < filtered.length;
+        return Promise.resolve({ leads: pageLeads as unknown as Lead[], hasMore });
     },
 
     getLead: async (id: string): Promise<Lead & { interactions: LeadInteraction[] }> => {
-        const res = await fetch(`/api/lead/${id}`);
-        if (!res.ok) throw new Error('Failed to fetch lead');
-        return res.json();
+        const found = STATIC_LEADS.find(l => l.id === id);
+        if (!found) throw new Error('Lead not found');
+        const interactions: LeadInteraction[] = (found.interactions || []) as unknown as LeadInteraction[];
+        return Promise.resolve({ ...(found as unknown as Lead), interactions });
     },
 
     createLead: async (lead: Partial<Lead>): Promise<Lead> => {
@@ -62,16 +178,20 @@ const api = {
 
     // Campaigns
     getCampaigns: async (search = '', filter = 'all'): Promise<Campaign[]> => {
-        const params = new URLSearchParams({ search, filter });
-        const res = await fetch(`/api/campaigns?${params}`);
-        if (!res.ok) throw new Error('Failed to fetch campaigns');
-        return res.json();
+        const normalizedSearch = search.trim().toLowerCase();
+        const filtered = STATIC_CAMPAIGNS.filter((c) => {
+            const matchesSearch = !normalizedSearch || c.name.toLowerCase().includes(normalizedSearch);
+            const matchesFilter = filter === 'all' || c.status === (filter as Campaign['status']);
+            return matchesSearch && matchesFilter;
+        });
+        return Promise.resolve(filtered as unknown as Campaign[]);
     },
 
     getCampaign: async (id: string): Promise<Campaign & { leads: Lead[] }> => {
-        const res = await fetch(`/api/campaigns/${id}`);
-        if (!res.ok) throw new Error('Failed to fetch campaign');
-        return res.json();
+        const campaign = STATIC_CAMPAIGNS.find(c => c.id === id);
+        if (!campaign) throw new Error('Campaign not found');
+        const leads = STATIC_LEADS.filter(l => l.campaignId === id) as unknown as Lead[];
+        return Promise.resolve({ ...(campaign as unknown as Campaign), leads });
     },
 
     createCampaign: async (campaign: Partial<Campaign>): Promise<Campaign> => {
